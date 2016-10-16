@@ -10,6 +10,10 @@ const io = socketio(server)
 
 const PORT = process.env.PORT || 3000
 
+io.on('connect', socket => {
+	console.log(`Socket connected: ${socket.id}`)
+	socket.on('disconnect', () => console.log('Socket disconnected'))
+})
 
 app.set('view engine', 'pug')
 

@@ -1,1 +1,7 @@
-console.log("hello");
+'use strict'
+
+const socket = io()
+
+console.log("socket", socket);
+socket.on('connect', () => console.log(`Socket connected: ${socket.id}`))
+socket.on('disconnect', () => console.log(`Socket disconnected`))
