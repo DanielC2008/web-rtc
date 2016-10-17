@@ -36,6 +36,21 @@ io.on('connection', function(socket){
       socket.emit('full', room);
     }
   });
+
+  socket.on('token', function(){
+    twilio.tokens.create(function(err, response){
+      if(err){
+        console.log(err);
+      }else{
+        socket.emit('token', response);
+      }
+    });
+  });
+
+  socket.on('candidate', function(candidate){
+    socket.broadcast.emit('candidate', candidate);
+  });
+
 });
 // Start the server
 server.start(() =>{

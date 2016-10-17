@@ -33,7 +33,31 @@ let VideoChat = {
   },
 
   startCall: function(event){
-    console.log("Things are going as planned!");
+    VideoChat.socket.on('token', VideoChat.onToken);
+    VideoChat.socket.emit('token');
+    VideoChat.peerConnection = new RTCPeerConnection({
+      iceServers: [{url: "stun:global.stun.twilio.com:3478?transport=udp" }]
+    })
+  },
+
+  onToken: function(token){
+    VideoChat.peerConnection = new RTCPeerConnection({
+      iceServers: token.iceServers
+    });
+    VideoChat.peerConnection.onicecandidate = VideoChat.onIceCandidate;
+    VideoChat.socket.on('candidate', VideoChat.onCandidate);
+  },
+
+  onIceCandidate: function(event){
+    if(event.candidate){
+      console.log('Generated candidate!');
+      VideoChat.socket.emit('candidate', JSON.stringify(event.candidate));
+    }
+  },
+
+  onCandidate: function(candidate){
+    rtcCandidate = new RTCIceCandidate(JSON.parse(candidate));
+    VideoChat.peerConnection.addIceCandidate(rtcCandidate);
   }
 };
 
