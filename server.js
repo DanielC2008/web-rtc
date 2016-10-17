@@ -1,6 +1,5 @@
 'use strict'
 
-// index.js
 let Hapi = require('hapi');
 let server = new Hapi.Server()
 server.connection({
@@ -20,6 +19,24 @@ server.route({
   }
 });
 
+io.on('connection', function(socket){
+    // console.log("first", clients);
+
+  socket.on('join', function(room){
+    let clients = io.sockets.adapter.rooms[room];
+    let numClients = (clients !== undefined) ? clients.length : 0;
+    console.log("numClients", numClients);
+    if(numClients == 0){
+    	socket.join(room)
+    }else if(numClients == 1){
+      socket.join(room)
+      socket.emit('ready', room);
+      socket.broadcast.emit('ready', room);
+    }else{
+      socket.emit('full', room);
+    }
+  });
+});
 // Start the server
 server.start(() =>{
   console.log('Server running at:', server.info.uri);
