@@ -53,6 +53,9 @@ io.on('connection', function(socket){
     socket.broadcast.emit('offer', offer);
   });
 
+  socket.on('answer', function(answer){
+    socket.broadcast.emit('answer', answer);
+  });
 });
 // Start the server
 server.start(() =>{

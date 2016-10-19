@@ -1,6 +1,5 @@
 'use strict'
 
-// app.js
 let VideoChat = {
   socket: io(),
 
@@ -25,8 +24,8 @@ let VideoChat = {
   },
 
   onOffer: function(offer){
-    console.log('Got an offer')
-    console.log(offer);
+    VideoChat.socket.on('token', VideoChat.onToken(VideoChat.createAnswer(offer)));
+    VideoChat.socket.emit('token');
   },
 
   readyToCall: function(event){
@@ -39,20 +38,38 @@ let VideoChat = {
   },
 
   startCall: function(event){
-    VideoChat.socket.on('token', VideoChat.onToken);
+    VideoChat.socket.on('token', VideoChat.onToken(VideoChat.createOffer));
     VideoChat.socket.emit('token');
     VideoChat.peerConnection = new webkitRTCPeerConnection({
       iceServers: [{url: "stun:global.stun.twilio.com:3478?transport=udp" }]
     })
   },
 
-  onToken: function(token){
-    VideoChat.peerConnection = new webkitRTCPeerConnection({
-      iceServers: token.iceServers
-    });
-    VideoChat.peerConnection.onicecandidate = VideoChat.onIceCandidate;
-    VideoChat.socket.on('candidate', VideoChat.onCandidate);
-    VideoChat.peerConnection.addStream(VideoChat.localStream);
+  onToken: function(callback){
+    return function(token){
+      VideoChat.peerConnection = new webkitRTCPeerConnection({
+        iceServers: token.iceServers
+      });
+      VideoChat.peerConnection.addStream(VideoChat.localStream);
+      VideoChat.peerConnection.onicecandidate = VideoChat.onIceCandidate;
+      VideoChat.peerConnection.onaddstream = VideoChat.onAddStream;
+      VideoChat.socket.on('candidate', VideoChat.onCandidate);
+      VideoChat.socket.on('answer', VideoChat.onAnswer);
+      callback();
+    }
+  },
+
+  onAddStream: function(event){
+    VideoChat.remoteVideo = document.getElementById('remote-video');
+    VideoChat.remoteVideo.src = window.URL.createObjectURL(event.stream);
+  },
+
+  onAnswer: function(answer){
+    let rtcAnswer = new RTCSessionDescription(JSON.parse(answer));
+    VideoChat.peerConnection.setRemoteDescription(rtcAnswer);
+  },
+
+  createOffer: function(){
     VideoChat.peerConnection.createOffer(
       function(offer){
         VideoChat.peerConnection.setLocalDescription(offer);
@@ -64,6 +81,21 @@ let VideoChat = {
     );
   },
 
+  createAnswer: function(offer){
+    return function(){
+      let rtcOffer = new RTCSessionDescription(JSON.parse(offer));
+      VideoChat.peerConnection.setRemoteDescription(rtcOffer);
+      VideoChat.peerConnection.createAnswer(
+        function(answer){
+          VideoChat.peerConnection.setLocalDescription(answer);
+          VideoChat.socket.emit('answer', JSON.stringify(answer));
+        },
+        function(err){
+          console.log(err);
+        }
+      );
+    }
+  },
   onIceCandidate: function(event){
     if(event.candidate){
       console.log('Generated candidate!');
@@ -72,9 +104,11 @@ let VideoChat = {
   },
 
   onCandidate: function(candidate){
-    rtcCandidate = new RTCIceCandidate(JSON.parse(candidate));
+    let rtcCandidate = new RTCIceCandidate(JSON.parse(candidate));
     VideoChat.peerConnection.addIceCandidate(rtcCandidate);
   }
+
+
 };
 
 VideoChat.videoButton = document.getElementById('get-video');
