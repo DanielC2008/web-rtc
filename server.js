@@ -20,12 +20,10 @@ server.route({
 });
 
 io.on('connection', function(socket){
-    // console.log("first", clients);
 
   socket.on('join', function(room){
     let clients = io.sockets.adapter.rooms[room];
     let numClients = (clients !== undefined) ? clients.length : 0;
-    console.log("numClients", numClients);
     if(numClients == 0){
     	socket.join(room)
     }else if(numClients == 1){
@@ -49,6 +47,10 @@ io.on('connection', function(socket){
 
   socket.on('candidate', function(candidate){
     socket.broadcast.emit('candidate', candidate);
+  });
+
+  socket.on('offer', function(offer){
+    socket.broadcast.emit('offer', offer);
   });
 
 });

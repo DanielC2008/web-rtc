@@ -21,6 +21,12 @@ let VideoChat = {
     VideoChat.localVideo.src = streamUrl;
     VideoChat.socket.emit('join', 'test');
     VideoChat.socket.on('ready', VideoChat.readyToCall);
+    VideoChat.socket.on('offer', VideoChat.onOffer);
+  },
+
+  onOffer: function(offer){
+    console.log('Got an offer')
+    console.log(offer);
   },
 
   readyToCall: function(event){
@@ -35,17 +41,27 @@ let VideoChat = {
   startCall: function(event){
     VideoChat.socket.on('token', VideoChat.onToken);
     VideoChat.socket.emit('token');
-    VideoChat.peerConnection = new RTCPeerConnection({
+    VideoChat.peerConnection = new webkitRTCPeerConnection({
       iceServers: [{url: "stun:global.stun.twilio.com:3478?transport=udp" }]
     })
   },
 
   onToken: function(token){
-    VideoChat.peerConnection = new RTCPeerConnection({
+    VideoChat.peerConnection = new webkitRTCPeerConnection({
       iceServers: token.iceServers
     });
     VideoChat.peerConnection.onicecandidate = VideoChat.onIceCandidate;
     VideoChat.socket.on('candidate', VideoChat.onCandidate);
+    VideoChat.peerConnection.addStream(VideoChat.localStream);
+    VideoChat.peerConnection.createOffer(
+      function(offer){
+        VideoChat.peerConnection.setLocalDescription(offer);
+        VideoChat.socket.emit('offer', JSON.stringify(offer));
+      },
+      function(err){
+        console.log(err);
+      }
+    );
   },
 
   onIceCandidate: function(event){
